@@ -1,11 +1,12 @@
 # Singer Discover Utility
 
 Simply command line utility to take a [Singer](https://www.singer.io/)-specification JSON catalog file and select which streams and fields to include. Fields with "automatic" inclusion are included... er.. automatically.
+This fork is compatible with newer python versions.
 
 ## Installation
 
 ```
-pip install https://github.com/chrisgoddard/singer-discover/archive/master.zip
+pip install git+[https](https://github.com/sehnem/singer-discover)
 ```
 
 ## Use
