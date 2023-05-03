@@ -4,9 +4,8 @@ import sys
 import argparse
 import json
 from singer import metadata, get_logger
-import tty
-
-from PyInquirer import prompt
+from InquirerPy.prompts.checkbox import CheckboxPrompt
+from InquirerPy.base.control import Choice
 
 logger = get_logger().getChild('singer-discover')
 
@@ -38,23 +37,33 @@ def main():
         sys.stdin = sys.stdout
 
     logger.info("Catalog configuration starting...")
+    
+    base_checkbox = {
+            'enabled_symbol': '◼',
+            'disabled_symbol': '◻',
+            "pointer": ">",
+            "instruction": "Press <space> to select, <a> to toggle all, <i> to invert selection and <u> to unset all.",
+            'keybindings': {
+                "toggle-all": [{"key": "i"}],
+                "toggle-all-true": [{"key": "a"}],
+                "toggle-all-false": [{"key": "u"}],
+            }
+        }
+    
+    stream_choices = [Choice(stream['stream']) for stream in catalog['streams']]
 
-    select_streams = {
-        'type': 'checkbox',
+    select_streams = dict({
         'message': 'Select Streams',
-        'name': 'streams',
-        'choices': [
-            {'name': stream['stream']} for stream in catalog['streams']
-        ]
-    }
+        'choices': stream_choices
+    }, **base_checkbox)
 
-    selected_streams = prompt(select_streams)
+    selected_streams = CheckboxPrompt(**select_streams).execute()
 
     for i, stream in enumerate(catalog['streams']):
 
         mdata = metadata.to_map(stream['metadata'])
 
-        if stream['stream'] not in selected_streams['streams']:
+        if stream['stream'] not in selected_streams:
             mdata = metadata.write(
                 mdata, (), 'selected', False
             )
@@ -70,43 +79,35 @@ def main():
             for breadcrumb, field in mdata.items():
 
                 if breadcrumb != ():
-                    selected, disabled = False, False
+                    enabled = False
                     if metadata.get(
                             mdata, breadcrumb, 'inclusion') == 'automatic':
-                        selected, disabled = True, "automatic"
+                        enabled = True
 
                     elif metadata.get(
                             mdata, breadcrumb, 'selected-by-default'):
-                        selected, disabled = True, False
+                        enabled = True
 
                     name = breadcrumb_name(breadcrumb)
 
                     field_reference[name] = breadcrumb
 
-                    fields.append({
-                        'name': name,
-                        'checked': selected,
-                        'disabled': disabled
-                    })
+                    fields.append(Choice(name, enabled=enabled))
 
-            # Order fields alphabetically, skip if error
             try:
-                fields = sorted(fields, key=lambda field: field['name'])
+                fields = sorted(fields, key=lambda field: field.name)
             except KeyError:
                 pass
-
-            stream_options = {
-                'type': 'checkbox',
-                'message': 'Select fields from stream: `{}`'.format(
-                    stream['stream']),
-                'name': 'fields',
+            
+            select_streams = dict({
+                'message': f"Select fields from stream: `{stream['stream']}`",
                 'choices': fields
-            }
+            }, **base_checkbox)
 
-            selections = prompt(stream_options)
+            selections = CheckboxPrompt(**select_streams).execute()
 
             selections = [
-                field_reference[n] for n in selections['fields']
+                field_reference[n] for n in selections
                 if n != "Select All"
             ]
 

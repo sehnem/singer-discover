@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name="singer-discover-catalog",
-    version="0.1.0",
+    version="0.2.0",
     description="Edit a catalog from a tap's discovery mode",
     author="Chris Goddard",
     url="https://github.com/chrisgoddard",
@@ -12,7 +12,7 @@ setup(
     py_modules=["singer_discover"],
     install_requires=[
         "singer-python>=5.4.1,<6.0",
-        "PyInquirer==1.0.3"
+        "InquirerPy>=0.3.3"
     ],
     entry_points="""
     [console_scripts]
